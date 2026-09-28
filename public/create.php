@@ -25,8 +25,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Jika Lolos Validasi (PRG Pattern)
     if (empty($errors)) {
-        $stmt = $pdo->prepare("INSERT INTO products (name, category, price, stock) VALUES (:name, :category, :price, :stock)");
-        $stmt->execute(compact('name', 'category', 'price', 'stock'));
+        $nama_gambar = "";
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+            $nama_gambar = time() . '_' . $_FILES['image']['name'];
+            move_uploaded_file($_FILES['image']['tmp_name'], 'uploads/' . $nama_gambar);
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO products (name, category, price, stock, image) VALUES (:name, :category, :price, :stock, :image)");
+        $stmt->execute([
+            'name' => $name,
+            'category' => $category,
+            'price' => $price,
+            'stock' => $stock,
+            'image' => $nama_gambar
+        ]);
         header("Location: index.php?status=created");
         exit;
     }
@@ -41,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container">
         <h2>Tambah Produk Baru</h2>
-        <form method="POST" action="create.php" style="max-width: 400px; background: white; padding: 20px; border-radius: 8px;">
+        <form method="POST" action="create.php" enctype="multipart/form-data" style="max-width: 400px; background: white; padding: 20px; border-radius: 8px;">
             <div class="form-group">
                 <label for="name">Nama Produk</label>
                 <input id="name" name="name" value="<?= htmlspecialchars($name, ENT_QUOTES) ?>" required>
@@ -61,6 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="number" id="stock" name="stock" value="<?= $stock ?>" min="0" required>
                 <?php if(isset($errors['stock'])) echo "<span class='error-text'>{$errors['stock']}</span>"; ?>
             </div>
+            <div class="form-group">
+    <label for="image">Upload Gambar</label>
+    <input type="file" id="image" name="image" accept="image/*" required>
+</div>
             <button type="submit" class="btn btn-primary">Simpan Produk</button>
             <a href="index.php" class="btn" style="color: #475569;">Batal</a>
         </form>

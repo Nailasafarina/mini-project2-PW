@@ -39,8 +39,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare("UPDATE products SET name=:name, category=:category, price=:price, stock=:stock WHERE id=:id");
-        $stmt->execute(compact('name', 'category', 'price', 'stock', 'id'));
+       // Cek apakah ada file gambar baru yang diunggah
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+            $nama_gambar = time() . '_' . $_FILES['image']['name'];
+            move_uploaded_file($_FILES['image']['tmp_name'], 'uploads/' . $nama_gambar);
+
+            // Jika ganti gambar, update database beserta kolom image
+            $stmt = $pdo->prepare("UPDATE products SET name = :name, category = :category, price = :price, stock = :stock, image = :image WHERE id = :id");
+            $stmt->execute([
+                'name' => $name,
+                'category' => $category,
+                'price' => $price,
+                'stock' => $stock,
+                'image' => $nama_gambar,
+                'id' => $id
+            ]);
+        } else {
+            // Jika kolom gambar dikosongkan, update data teks saja
+            $stmt = $pdo->prepare("UPDATE products SET name = :name, category = :category, price = :price, stock = :stock WHERE id = :id");
+            $stmt->execute([
+                'name' => $name,
+                'category' => $category,
+                'price' => $price,
+                'stock' => $stock,
+                'id' => $id
+            ]);
+        }
         header("Location: index.php?status=updated");
         exit;
     }
@@ -56,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container">
         <h2>Edit Produk</h2>
-        <form method="POST" action="edit.php" style="max-width: 400px; background: white; padding: 20px; border-radius: 8px;">
+        <form method="POST" action="edit.php" enctype="multipart/form-data" style="max-width: 400px; background: white; padding: 20px; border-radius: 8px;">
             <input type="hidden" name="id" value="<?= $id ?>">
             <!-- Input text disingkat untuk memuat contoh yang sama dengan Create -->
             <div class="form-group">
@@ -76,6 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label>Stok</label>
                 <input type="number" name="stock" value="<?= $stock ?>" required>
             </div>
+            <div class="form-group">
+    <label>Ganti Gambar</label>
+    <input type="file" name="image" accept="image/*">
+</div>
             <button type="submit" class="btn btn-primary">Update Produk</button>
             <a href="index.php" class="btn" style="color: #475569;">Batal</a>
         </form>
